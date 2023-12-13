@@ -12,9 +12,9 @@ int main(void) {
     while (1) {
         uint16_t number = 1234;
         while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-        USART_SendData(USART1, (number >> 8) & 0xFF); // Siunčiame aukštesnį baitą
+        USART_SendData(USART1, (number >> 8) & 0xFF); // Siunciame aukstesni baita
         while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-        USART_SendData(USART1, number & 0xFF); // Siunčiame žemesnį baitą
+        USART_SendData(USART1, number & 0xFF); // Siunciame zemesni baita
     }
 }
 
