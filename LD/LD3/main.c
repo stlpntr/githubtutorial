@@ -1,8 +1,23 @@
 #include "stm32f3xx.h"
 
-void RCC_Configuration(void);
-void GPIO_Configuration(void);
-void UART_Configuration(void);
+void RCC_Configuration(void) {
+    // Enable the clock for GPIOA and USART1
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+    RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+
+void GPIO_Configuration(void) {
+    GPIOA->MODER |= GPIO_MODER_MODER9_1 | GPIO_MODER_MODER10_1;
+    GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_9 | GPIO_OTYPER_OT_10);  
+    GPIOA->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR9 | GPIO_OSPEEDER_OSPEEDR10;
+    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR9 | GPIO_PUPDR_PUPDR10);
+    GPIOA->AFR[1] |= (0x7 << (4 * (9 - 8))) | (0x7 << (4 * (10 - 8)));
+}
+
+void UART_Configuration(void) {
+    USART1->BRR = 8000000 / 9600;
+    USART1->CR1 = USART_CR1_TE;  
+    USART1->CR1 |= USART_CR1_UE;
+}
 
 int main(void) {
     RCC_Configuration();
@@ -11,49 +26,9 @@ int main(void) {
 
     while (1) {
         uint16_t number = 1234;
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-        USART_SendData(USART1, (number >> 8) & 0xFF); // Siunciame aukstesni baita
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-        USART_SendData(USART1, number & 0xFF); // Siunciame zemesni baita
+        while (!(USART1->ISR & USART_ISR_TXE));
+        USART1->TDR = (number >> 8) & 0xFF;
+        while (!(USART1->ISR & USART_ISR_TXE));
+        USART1->TDR = number & 0xFF;
     }
-}
-
-void RCC_Configuration(void) {
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
-}
-
-void GPIO_Configuration(void) {
-    GPIO_InitTypeDef GPIO_InitStructure;
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_7);
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_7);
-}
-
-void UART_Configuration(void) {
-    USART_InitTypeDef USART_InitStructure;
-
-    // Nustatome UART1 nustatymus
-    USART_InitStructure.USART_BaudRate = 9600;
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-    USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    USART_InitStructure.USART_Parity = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Tx; // Tik transliacija
-    USART_Init(USART1, &USART_InitStructure);
-
-    USART_Cmd(USART1, ENABLE);
 }
